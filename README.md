@@ -1,50 +1,10 @@
 # Ordered Collection Diffing
-* Proposal: SE-NNNN
-* Authors: Scott Perry
-* Review Manager: TBD
-* Status: Prototype
 
-## Introduction
+This prototype implements ordered collection diffing as proposed to swift-evolution.
 
-This proposal describes additions to the standard library that provide diffing/patching functionality for ordered collection types.
+## API Summary
 
-## Motivation
-
-This proposal is inspired by the convenience of the `diffutils` suite when interacting with text files, and the reluctance to solve similar problems in code with `libgit2`. Representing, manufacturing, and applying transactions between states today requires writing a lot of error-prone code.
-
-A lot of state management patterns would benefit from improvements in this area, including undo/redo stacks, generational stores, and syncing differential content to a service.
-
-## Proposed solution
-
-The concept of an ordered collection is formalized with a new protocol, and new types representing the differences between ordered collections are introduced along with methods that support their production and application among compatible types.
-
-Using this API, a line-by-line three-way merge can be performed in a few lines of code:
-
-``` swift
-// Split the contents of the sources into lines
-let baseLines = base.components(separatedBy: "\n")
-let theirLines = theirs.components(separatedBy: "\n")
-let myLines = mine.components(separatedBy: "\n")
-    
-// Create a difference from base to theirs
-let diff = theirLines.difference(from:baseLines)
-    
-// Apply it to mine, if possible
-guard let patchedLines = myLines.applying(diff) else {
-    print("Merge conflict applying patch, manual merge required")
-    return
-}
-    
-// Reassemble the result
-let patched = patchedLines.joined(separator: "\n")
-print(patched)
-```
-
-## Detailed design
-
-### Formalizing ordered collections
-
-The Swift standard library lacks a protocol for operations that are only valid over `Collection` types with a strong sense of order, such as `elementsEqual(:)`. The correctness of diffing operations also depend on order, so the Swift standard library team has requested that we use this opportunity to formalize this characteristic with a new protocol, `OrderedCollection`:
+### `OrderedCollection`
 
 ``` swift
 /// An ordered collection treats the structural positions of its elements as
@@ -158,11 +118,8 @@ extension OrderedCollection where Element: Equatable {
     public func elementsEqual<C>(_ other: C) -> Bool
         where C : OrderedCollection, C.Element == Element
 }
-```
 
-A number of existing `Collection` types in the standard libraries will also adopt `OrderedCollection`:
-
-``` swift
+// stdlib conformance:
 extension Array : OrderedCollection {}
 extension ArraySlice : OrderedCollection {}
 extension ClosedRange : OrderedCollection where Bound : Strideable, Bound.Stride : SignedInteger {}
@@ -184,7 +141,7 @@ extension IndexPath : OrderedCollection {}
 extension DataProtocol : OrderedCollection {}
 ```
 
-The `difference(from:)` method on `OrderedCollection` produces a difference type, which is defined as:
+### `OrderedCollectionDifference`
 
 ``` swift
 /// A type that represents the difference between two ordered collection states.
@@ -271,11 +228,7 @@ extension OrderedCollectionDifference: Hashable where ChangeElement: Hashable {
 extension OrderedCollectionDifference: Codable where ChangeElement: Codable {}
 ```
 
-A `Change` is a single mutating operation, an `OrderedCollectionDifference` is a plurality of such operations that represents a complete transition between two states. Given the interdependence of the changes, `OrderedCollectionDifference` has no mutating members, but it does allow index- and `Slice`-based access to its changes via `Collection` conformance as well as a validating initializer taking a `Collection`.
-
-Fundamentally, there are only two operations that mutate ordered collections, `insert(:,at:)` and `remove(at:)`, but there are benefits from being able to represent other operations such as moves and replacements, especially for UIs that may want to animate a move differently from an `insert`/`remove` pair. These operations are represented using `associatedWith:`. When non-`nil`, they refer to the offset of the counterpart as described in the headerdoc.
-
-### Application of instances of `OrderedCollectionDifference`
+### `RangeReplaceableCollection`
 
 ``` swift
 extension RangeReplaceableCollection {
@@ -294,80 +247,31 @@ extension RangeReplaceableCollection {
 }
 ```
 
-Applying a diff to an incompatible base state results in an invalid collection state. `applying(:)` expresses this by returning nil.
+## Examples
 
-## Source compatibility
+### 3-way merge
 
-This proposal is additive and the names of the types it proposes are not likely to already be in wide use, so it does not represent a significant risk to source compatibility.
+``` swift
+// Split the contents of the sources into lines
+let baseLines = base.components(separatedBy: "\n")
+let theirLines = theirs.components(separatedBy: "\n")
+let myLines = mine.components(separatedBy: "\n")
+    
+// Create a difference from base to theirs
+let diff = theirLines.difference(from:baseLines)
+    
+// Apply it to mine, if possible
+guard let patchedLines = myLines.applying(diff) else {
+    print("Merge conflict applying patch, manual merge required")
+    return
+}
+    
+// Reassemble the result
+let patched = patchedLines.joined(separator: "\n")
+print(patched)
+```
 
-## Effect on ABI stability
-
-This proposal does not affect ABI stability.
-
-## Effect on API resilience
-
-This feature additive and symbols marked with `@available(swift, introduced: 5.1)` as appropriate.
-
-## Alternatives considered
-
-### `difference(from:,by:)` defined in protocol instead of extension
-
-I'd love to hear feedback on this decision; it was informed by an intention to minimize defects without compromising performance.
-
-The diffing function is defined in an extension because thus far all performance opportunities have been possible to satisfy by adding different required protocol methods that provide functionality such as fast membership testing or identifying the first mismatch between two slices.
-
-Furthermore, making the algorithm that produces the diff immutable creates a guarantee that two diffs constructed from different collections but representing the same state transition will always equate to each other. This would certainly be violated if `difference(from:,by:)` were overridden because of the possibility for the same state transition to be represented in multiple ways by implementations that don't produce [LCS](https://en.wikipedia.org/wiki/Longest_common_subsequence_problem) results.
-
-### Communicating changes via a series of callbacks
-
-Breaking up a transaction into a sequence of imperative events is not very Swifty, and the pattern has proven to be fertile ground for defects.
-
-### More nuanced cases in `OrderedCollectionDifference.Change`
-
-While the tools in this proposal are used to represent a transaction between two states, it's tempting to extend the solution to include the "how" of the transition as well as the "what". Unfortunately implementing such a thing depends on a notion of identity that is different from equality, which is defined differently for every kind of Element that may be used with this API.
-
-Put another way, diffs already lack temporal information (the change order that produced the state transition is almost always irrecoverable), the same is true for the kinds of operations that produced the state transition.
-
-Representing different kinds of operations also introduces a problem where diffs can't be compared; should they be equal if they transition between the same two states, or only if they make that transition in the same way?
-
-Clients are encouraged to infer moves vs independant insert/removes by applying their own notion of identity to their interpretation of the difference.
-
-### `applying(:) throws -> Self` instead of `applying(:) -> Self?`
-
-Assuming the code producing and applying the diff are both under your control, it is always possible to be certain that a difference is safe to apply. The only reason application can fail is when the diff is being applied to an invalid base state.
-
-The existence of a function that returns nil when application fails is a concession to the reality that `OrderedCollectionDifference` may be used as a boundary data type by APIs that wish to respond to bad inputs in a non-fatal manner. Since there's only one reason diff application may fail, the granularity provided by an error type isn't especially useful.
-
-### `Change` using `Index` instead of offset
-
-Because indexes cannot be navigated in the absence of the collection instance that generated them, a diff would be much more limited in usefulness as a boundary type. If indexes are required, they can be rehydrated from the offsets in the presence of the collection(s) to which they belong.
-
-### `OrderedCollection` conformance for `OrderedCollectionDifference`
-
-Because the change offsets refer directly to the resting positions of elements in the base and modified states, the changes represent the same state transition regardless of their order. The purpose of ordering is to optimize for understanding, safety, and/or performance. In fact, this prototype already contains examples of two different equally valid sort orders: 
-
-* The order provided by `for in` is optimized for safe diff application when modifying a compatible base state one element at a time.
-* `applying(_:)` uses a different order where `insert` and `remove` instances are interleaved based on their adjusted offsets in the base state.
-
-Both sort orders are "correct" in representing the same state transition.
-
-### `Change` generic on `BaseElement` and `OtherElement` instead of just `Element`
-
-Application of differences would only be possible when both `Element` types were equal, and there would be additional cognitive overhead with comparators with the type `(Element, Other.Element) -> Bool`.
-
-Since the comparator forces both types to be effectively isomorphic, a diff generic over only one type can satisfy the need by mapping one (or both) ordered collections to force their `Element` types to match.
-
-## Intentional omissions:
-
-### Further adoption
-
-This API allows for more interesting functionality that is not included in this proposal.
-
-For example, this propsal could have included a reversed() function on the difference types that would return a new difference that would undo the application of the original.
-
-The lack of additional conveniences and functionality is intentional; the goal of this proposal is to lay the groundwork that such extensions would be built upon.
-
-In the case of `reversed()`, clients of the API in this proposal can use `Collection.map()` to invert the case of each `Change` and feed the result into `OrderedCollectionDifference`:
+### Reversing a diff
 
 ``` swift
 let reversed = diff.map({ (change) -> OrderedCollectionDifference</* your ChangeElement here */>.Change in
@@ -380,18 +284,20 @@ let reversed = diff.map({ (change) -> OrderedCollectionDifference</* your Change
 })
 ```
 
-### Initialization conveniences
+### Inferring moves
 
-While the initializer performs as many safety checks as possible given the available context, the creation of `OrderedCollectionDifference` instances via `init()` is a vector for bugs where a difference may not represent a transition between any known states.
+``` swift
+let diff = [0, 1, 2].difference(from:[2, 0, 1])
 
-For example, removing all remove cases from a difference makes it incompatible with the state that produced it.
+print(diff)
+// OrderedCollectionDifference<Int>(
+//     insertions: [Diffing.OrderedCollectionDifference<Swift.Int>.Change.insert(offset: 2, element: 2, associatedWith: nil)],
+//     removals: [Diffing.OrderedCollectionDifference<Swift.Int>.Change.remove(offset: 0, element: 2, associatedWith: nil)]
+// )
 
-This API design encourages safety via the inclusion of map() (which is easy to get right) and the omission of ExpressibleByArrayLiteral from the difference types (which would be easy to get wrong). init() is included for authors of collection-like types, such as reference types that provide a live view into a model that changes over time.
-
-### `mutating apply(:)`
-
-There is no mutating applicator because there is no algorithmic advantage to in-place application.
-
-### `mutating inferringMoves()`
-
-While there is no algorithmic improvement to be had from in-place move inferencing, there may be other savings to be had; we're considering this function for a future proposal, if there is sufficient demand.
+print(diff.inferringMoves())
+// OrderedCollectionDifference<Int>(
+//     insertions: [Diffing.OrderedCollectionDifference<Swift.Int>.Change.insert(offset: 2, element: 2, associatedWith: Optional(0))],
+//     removals: [Diffing.OrderedCollectionDifference<Swift.Int>.Change.remove(offset: 0, element: 2, associatedWith: Optional(2))]
+// )
+```

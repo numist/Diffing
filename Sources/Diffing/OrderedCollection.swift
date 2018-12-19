@@ -57,9 +57,11 @@ extension OrderedCollection {
     ///
     /// - Complexity: O(*n* * *d*), where *n* is `other.count + self.count` and
     ///   *d* is the number of differences between the two ordered collections.
-    public func difference<C: OrderedCollection>(
+    public func difference<C>(
         from other: C, by areEquivalent: (Element, C.Element) -> Bool
-    ) -> OrderedCollectionDifference<Element> where C.Element == Self.Element {
+    ) -> OrderedCollectionDifference<Element>
+        where C : OrderedCollection, C.Element == Self.Element
+    {
         var rawChanges: [OrderedCollectionDifference<Element>.Change] = []
         
         let source = CountingIndexCollection(other)
