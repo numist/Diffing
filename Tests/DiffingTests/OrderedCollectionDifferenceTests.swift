@@ -263,14 +263,16 @@ final class OrderedCollectionDifferenceTests: XCTestCase {
     
     func testDemoReverse() {
         let diff = OrderedCollectionDifference<Int>([])!
-        let reversed = diff.map({ (change) -> OrderedCollectionDifference<Int>.Change in
-            switch change {
-            case .insert(offset: let o, element: let e, associatedWith: let a):
-                return .remove(offset: o, element: e, associatedWith: a)
-            case .remove(offset: let o, element: let e, associatedWith: let a):
-                return .insert(offset: o, element: e, associatedWith: a)
-            }
-        })
+        let reversed = OrderedCollectionDifference<Int>(
+            diff.map({(change) -> OrderedCollectionDifference<Int>.Change in
+                switch change {
+                case .insert(offset: let o, element: let e, associatedWith: let a):
+                    return .remove(offset: o, element: e, associatedWith: a)
+                case .remove(offset: let o, element: let e, associatedWith: let a):
+                    return .insert(offset: o, element: e, associatedWith: a)
+                }
+            })
+        )!
         print(reversed)
     }
     

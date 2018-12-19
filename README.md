@@ -1,6 +1,6 @@
 # Ordered Collection Diffing
 
-This prototype implements ordered collection diffing as proposed to swift-evolution.
+This prototype implements ordered collection diffing as [proposed to swift-evolution](https://github.com/apple/swift-evolution/pull/968) and [pitched in swift-evolution](https://forums.swift.org/t/ordered-collection-diffing/18933).
 
 ## API Summary
 
@@ -274,14 +274,17 @@ print(patched)
 ### Reversing a diff
 
 ``` swift
-let reversed = diff.map({ (change) -> OrderedCollectionDifference</* your ChangeElement here */>.Change in
-    switch change {
-    case .insert(offset: let o, element: let e, associatedWith: let a):
-        return .remove(offset: o, element: e, associatedWith: a)
-    case .remove(offset: let o, element: let e, associatedWith: let a):
-        return .insert(offset: o, element: e, associatedWith: a)
-    }
-})
+let diff: OrderedCollectionDifference<Int> = /* ... */
+let reversed = OrderedCollectionDifference<Int>(
+    diff.map({(change) -> OrderedCollectionDifference<Int>.Change in
+        switch change {
+        case .insert(offset: let o, element: let e, associatedWith: let a):
+            return .remove(offset: o, element: e, associatedWith: a)
+        case .remove(offset: let o, element: let e, associatedWith: let a):
+            return .insert(offset: o, element: e, associatedWith: a)
+        }
+    })
+)!
 ```
 
 ### Inferring moves
