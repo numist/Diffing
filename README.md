@@ -123,8 +123,6 @@ extension OrderedCollection where Element: Equatable {
 extension BidirectionalCollection : OrderedCollection {}
 extension CountingIndexCollection : OrderedCollection where Base : OrderedCollection {}
 extension Slice : OrderedCollection where Base : OrderedCollection {}
-extension String : OrderedCollection {}
-extension Substring : OrderedCollection {}
 extension UnsafeMutableRawBufferPointer : OrderedCollection {}
 extension UnsafeRawBufferPointer : OrderedCollection {}
 ```
