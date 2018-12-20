@@ -119,26 +119,14 @@ extension OrderedCollection where Element: Equatable {
         where C : OrderedCollection, C.Element == Element
 }
 
-// stdlib conformance:
-extension Array : OrderedCollection {}
-extension ArraySlice : OrderedCollection {}
-extension ClosedRange : OrderedCollection where Bound : Strideable, Bound.Stride : SignedInteger {}
-extension CollectionOfOne : OrderedCollection {}
-extension ContiguousArray : OrderedCollection {}
+// Adoption:
+extension BidirectionalCollection : OrderedCollection {}
 extension CountingIndexCollection : OrderedCollection where Base : OrderedCollection {}
-extension EmptyCollection : OrderedCollection {}
-extension Range : OrderedCollection where Bound : Strideable, Bound.Stride : SignedInteger {}
 extension Slice : OrderedCollection where Base : OrderedCollection {}
 extension String : OrderedCollection {}
 extension Substring : OrderedCollection {}
-extension UnsafeBufferPointer : OrderedCollection {}
-extension UnsafeMutableBufferPointer : OrderedCollection {}
 extension UnsafeMutableRawBufferPointer : OrderedCollection {}
 extension UnsafeRawBufferPointer : OrderedCollection {}
-
-// In Foundation:
-extension IndexPath : OrderedCollection {}
-extension DataProtocol : OrderedCollection {}
 ```
 
 ### `OrderedCollectionDifference`
