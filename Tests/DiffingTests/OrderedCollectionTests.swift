@@ -340,8 +340,29 @@ final class OrderedCollectionTests: XCTestCase {
         }
     }
 
+    func testLCS() {
+        // `after` alignment represents current (buggy) diff behaviour. Proper LCS result should remove elements at offsets 0...9
+        let before = ["c", "a", "l", "l", " ", "t", "h", "i", "s", " ", "s", "o", " ", "w", "e", " ", "c", "a", "n", " ", "o", "v", "e", "r", "r", "i", "d", "e"]
+        let after =  [                                        "s",           "o", " ", "w", "e", " ", "c", "a", "n", " ", "o", "v", "e", "r", "r", "i", "d", "e"]
+        let diff = after.difference(from: before)
+        let expected = OrderedCollectionDifference<String>([
+            .remove(offset: 0, element: "c", associatedWith:nil),
+            .remove(offset: 1, element: "a", associatedWith:nil),
+            .remove(offset: 2, element: "l", associatedWith:nil),
+            .remove(offset: 3, element: "l", associatedWith:nil),
+            .remove(offset: 4, element: " ", associatedWith:nil),
+            .remove(offset: 5, element: "t", associatedWith:nil),
+            .remove(offset: 6, element: "h", associatedWith:nil),
+            .remove(offset: 7, element: "i", associatedWith:nil),
+            .remove(offset: 8, element: "s", associatedWith:nil),
+            .remove(offset: 9, element: " ", associatedWith:nil)
+        ])
+        XCTAssertEqual(diff, expected)
+    }
+
     static var allTests = [
         ("testEmpty", testEmpty),
         ("testDifference", testDifference),
+        ("testLCS", testLCS),
     ]
 }
