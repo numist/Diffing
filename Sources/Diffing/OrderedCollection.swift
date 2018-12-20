@@ -146,18 +146,29 @@ extension OrderedCollection where Element : Equatable {
     }
 }
 
+// extension BidirectionalCollection : OrderedCollection {}
+// Implies the following:
 extension Array : OrderedCollection {}
 extension ArraySlice : OrderedCollection {}
 extension ClosedRange : OrderedCollection where Bound : Strideable, Bound.Stride : SignedInteger {}
 extension CollectionOfOne : OrderedCollection {}
 extension ContiguousArray : OrderedCollection {}
-extension CountingIndexCollection : OrderedCollection where Base : OrderedCollection {}
 extension EmptyCollection : OrderedCollection {}
 extension Range : OrderedCollection where Bound : Strideable, Bound.Stride : SignedInteger {}
+extension UnsafeBufferPointer : OrderedCollection {}
+extension UnsafeMutableBufferPointer : OrderedCollection {}
+import Foundation
+#if swift(>=5.0)
+extension DataProtocol : OrderedCollection {}
+#else
+extension Data : OrderedCollection {}
+#endif
+extension IndexPath : OrderedCollection {}
+
+// Unidirectional collection adoption of OrderedCollection:
+extension CountingIndexCollection : OrderedCollection where Base : OrderedCollection {}
 extension Slice : OrderedCollection where Base : OrderedCollection {}
 extension String : OrderedCollection {}
 extension Substring : OrderedCollection {}
-extension UnsafeBufferPointer : OrderedCollection {}
-extension UnsafeMutableBufferPointer : OrderedCollection {}
 extension UnsafeMutableRawBufferPointer : OrderedCollection {}
 extension UnsafeRawBufferPointer : OrderedCollection {}
