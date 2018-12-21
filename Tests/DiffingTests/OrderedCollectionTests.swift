@@ -353,6 +353,17 @@ final class OrderedCollectionTests: XCTestCase {
         XCTAssertEqual(diff, expected)
     }
 
+    func testLCSReversed() {
+        // Same as testLCS but reversed
+        let before = ["s", "s", "o"].reversed()
+        let after =  ["s",      "o"].reversed()
+        let diff = after.difference(from: before)
+        let expected = OrderedCollectionDifference<String>([
+            .remove(offset: 2, element: "s", associatedWith:nil)
+            ])
+        XCTAssertEqual(diff, expected)
+    }
+
     static var allTests = [
         ("testEmpty", testEmpty),
         ("testDifference", testDifference),

@@ -155,6 +155,7 @@ extension CollectionOfOne : OrderedCollection {}
 extension ContiguousArray : OrderedCollection {}
 extension EmptyCollection : OrderedCollection {}
 extension Range : OrderedCollection where Bound : Strideable, Bound.Stride : SignedInteger {}
+extension ReversedCollection : OrderedCollection where Base : OrderedCollection {}
 extension UnsafeBufferPointer : OrderedCollection {}
 extension UnsafeMutableBufferPointer : OrderedCollection {}
 import Foundation
