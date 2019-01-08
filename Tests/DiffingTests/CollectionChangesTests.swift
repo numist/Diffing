@@ -88,7 +88,7 @@ class CollectionChangesTests : XCTestCase {
     ]
 
     func testChanges() {
-        func checkChanges<C1 : OrderedCollection, C2 : OrderedCollection>(
+        func checkChanges<C1 : BidirectionalCollection, C2 : BidirectionalCollection>(
             from source: C1,
             to target: C2,
             changeCount expectedChangeCount: Int,
@@ -144,7 +144,7 @@ class CollectionChangesTests : XCTestCase {
     }
 
     func testFormChanges() {
-        func checkFormChanges<C1 : OrderedCollection, C2 : OrderedCollection>(
+        func checkFormChanges<C1 : BidirectionalCollection, C2 : BidirectionalCollection>(
             _ difference: inout CollectionChanges<C1.Index, C2.Index>,
             from source: C1,
             to target: C2,

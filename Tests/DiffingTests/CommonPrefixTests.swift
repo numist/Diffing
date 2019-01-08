@@ -4,7 +4,7 @@ import XCTest
 class MismatchTests : XCTestCase {
     func testCommonPrefix() {
         func checkCommonPrefix<
-            C1 : OrderedCollection, C2 : OrderedCollection, Expect : Sequence
+            C1 : BidirectionalCollection, C2 : BidirectionalCollection, Expect : Sequence
         >(_ c1: C1, _ c2: C2, expect: Expect)
             where C1.Element == C2.Element,
                 C1.Element == Expect.Element,
