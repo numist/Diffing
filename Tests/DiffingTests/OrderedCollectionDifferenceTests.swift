@@ -247,7 +247,7 @@ final class OrderedCollectionDifferenceTests: XCTestCase {
         let myLines = mine.components(separatedBy: "\n")
         
         // Create a difference from base to theirs
-        let diff = theirLines.difference(from:baseLines)
+        let diff = theirLines.shortestEditScript(from:baseLines)
         
         // Apply it to mine, if possible
         guard let patchedLines = myLines.applying(diff) else {
@@ -285,7 +285,7 @@ final class OrderedCollectionDifferenceTests: XCTestCase {
         let theirLines = theirs.components(separatedBy: "\n")
         
         // Create a difference from base to theirs
-        let diff = theirLines.difference(from:arr)
+        let diff = theirLines.shortestEditScript(from:arr)
         
         for c in diff {
             switch c {

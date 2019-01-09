@@ -22,7 +22,7 @@ class RangeReplaceableCollectionTests : XCTestCase {
             if insertFirst  { b.insert(12, at: 0) }
 
             // Generate diff
-            let diff = b.difference(from: a)
+            let diff = b.shortestEditScript(from: a)
 
             // Validate application
             XCTAssertEqual(b, a.applying(diff)!)
@@ -40,14 +40,14 @@ class RangeReplaceableCollectionTests : XCTestCase {
         for _ in 0..<1000 {
             let a = makeArray()
             let b = makeArray()
-            let d = b.difference(from: a)
+            let d = b.shortestEditScript(from: a)
             XCTAssertEqual(b, a.applying(d)!)
             if self.testRun!.failureCount > 0 {
                 print("""
                     // repro:
                     let a = \(a)
                     let b = \(b)
-                    let d = b.difference(from: a)
+                    let d = b.shortestEditScript(from: a)
                     XCTAssertEqual(b, a.applying(d))
                 """)
                 break

@@ -87,7 +87,7 @@ public struct OrderedCollectionDifference<ChangeElement> {
     /// Creates an instance from a collection of changes.
     ///
     /// For clients interested in the difference between two ordered
-    /// collections, see `OrderedCollection.difference(from:)`.
+    /// collections, see `OrderedCollection.shortestEditScript(from:)`.
     ///
     /// To guarantee that instances are unambiguous and safe for compatible base
     /// states, this initializer will fail unless its parameter meets to the
@@ -154,7 +154,7 @@ public struct OrderedCollectionDifference<ChangeElement> {
     public let removals: [Change]
 }
 
-/// An OrderedCollectionDifference is itself a RandomAccessCollection.
+/// An OrderedCollectionDifference is itself a Collection.
 ///
 /// The `Change` elements are ordered as:
 ///
@@ -174,7 +174,7 @@ public struct OrderedCollectionDifference<ChangeElement> {
 ///     }
 /// }
 /// ```
-extension OrderedCollectionDifference : RandomAccessCollection {
+extension OrderedCollectionDifference : Collection {
     public typealias Element = OrderedCollectionDifference<ChangeElement>.Change
 
     // Opaque index type is isomorphic to Int

@@ -1,13 +1,13 @@
 import XCTest
 @testable import Diffing
 
-final class OrderedCollectionTests: XCTestCase {
+final class BidirectionalCollectionTests: XCTestCase {
     func testEmpty() {
         let a = [Int]()
         let b = [Int]()
-        let diff = b.difference(from: a)
+        let diff = b.shortestEditScript(from: a)
 
-        XCTAssertEqual(diff, a.difference(from: a))
+        XCTAssertEqual(diff, a.shortestEditScript(from: a))
         XCTAssertEqual(true, diff.isEmpty)
     }
 
@@ -332,7 +332,7 @@ final class OrderedCollectionTests: XCTestCase {
         ]
 
         for (source, target, expected, line) in expectedChanges {
-            let actual = source.difference(from: target).inferringMoves()
+            let actual = source.shortestEditScript(from: target).inferringMoves()
             XCTAssert(
                 actual == OrderedCollectionDifference(expected),
                 "\(actual) != \(expected)",

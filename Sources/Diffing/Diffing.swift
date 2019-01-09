@@ -1,7 +1,7 @@
 // MARK: Diff application to RangeReplaceableCollection
 
 extension RangeReplaceableCollection {
-    @inline(__always) private static func fastApplicationEnumeration(
+    private static func fastApplicationEnumeration(
         of diff: OrderedCollectionDifference<Element>,
         _ f: (OrderedCollectionDifference<Element>.Change) -> Void
     ) {
@@ -96,12 +96,11 @@ extension RangeReplaceableCollection {
 //@available(swift, introduced: 5.1)
 extension BidirectionalCollection {
     /// Returns the difference needed to produce the receiver's state from the
-    /// parameter's state, using the provided closure to establish equivalence
-    /// between elements.
+    /// parameter's state with the fewest possible changes, using the provided
+    /// closure to establish equivalence between elements.
     ///
     /// This function does not infer element moves, but they can be computed
-    /// using `OrderedCollectionDifference.inferringMoves()` if
-    /// desired.
+    /// using `OrderedCollectionDifference.inferringMoves()` if desired.
     ///
     /// Implementation is an optimized variation of the algorithm described by
     /// E. Myers (1986).
@@ -115,10 +114,10 @@ extension BidirectionalCollection {
     ///   the parameter's state.
     ///
     /// - Complexity: O(*n* * *d*), where *n* is `other.count + self.count` and
-    ///   *d* is the number of differences between the two ordered collections.
+    ///   *d* is the number of changes between the two ordered collections.
     public func difference<C>(
         from other: C, by areEquivalent: (Element, C.Element) -> Bool
-        ) -> OrderedCollectionDifference<Element>
+    ) -> OrderedCollectionDifference<Element>
         where C : BidirectionalCollection, C.Element == Self.Element
     {
         var rawChanges: [OrderedCollectionDifference<Element>.Change] = []
@@ -154,12 +153,11 @@ extension BidirectionalCollection {
 
 extension BidirectionalCollection where Element : Equatable {
     /// Returns the difference needed to produce the receiver's state from the
-    /// parameter's state, using equality to establish equivalence between
-    /// elements.
+    /// parameter's state with the fewest possible changes, using equality to
+    /// establish equivalence between elements.
     ///
     /// This function does not infer element moves, but they can be computed
-    /// using `OrderedCollectionDifference.inferringMoves()` if
-    /// desired.
+    /// using `OrderedCollectionDifference.inferringMoves()` if desired.
     ///
     /// Implementation is an optimized variation of the algorithm described by
     /// E. Myers (1986).
@@ -171,20 +169,20 @@ extension BidirectionalCollection where Element : Equatable {
     ///   the parameter's state.
     ///
     /// - Complexity: O(*n* * *d*), where *n* is `other.count + self.count` and
-    ///   *d* is the number of differences between the two ordered collections.
+    ///   *d* is the number of changes between the two ordered collections.
     public func difference<C>(from other: C) -> OrderedCollectionDifference<Element>
         where C: BidirectionalCollection, C.Element == Self.Element
     {
-        return difference(from: other, by: ==)
+        return shortestEditScript(from: other, by: ==)
     }
 }
 
 extension BidirectionalCollection {
     /// Returns a pair of subsequences containing the initial elements that
     /// `self` and `other` have in common.
-    func commonPrefix<Other : BidirectionalCollection>(
+    fileprivate func commonPrefix<Other : BidirectionalCollection>(
         with other: Other, by areEquivalent: (Element, Other.Element) -> Bool
-        ) -> (SubSequence, Other.SubSequence) where Element == Other.Element {
+    ) -> (SubSequence, Other.SubSequence) where Element == Other.Element {
         let (s1, s2) = (startIndex, other.startIndex)
         let (e1, e2) = (endIndex, other.endIndex)
         var (i1, i2) = (s1, s2)
@@ -229,7 +227,7 @@ extension BidirectionalCollection {
 /// - Note: `CollectionChanges` holds a reference to state used to run the
 ///         difference algorithm, which can be exponentially larger than the
 ///         changes themselves.
-struct CollectionChanges<
+fileprivate struct CollectionChanges<
     SourceIndex : Comparable, TargetIndex : Comparable
 > {
     typealias Endpoint = (x: SourceIndex, y: TargetIndex)
@@ -265,16 +263,16 @@ struct CollectionChanges<
     private var pathStartIndex: Int
     
     /// Creates a collection of changes from a difference path.
-    fileprivate init(
+    init(
         pathStorage: [Endpoint], pathStartIndex: Int
-        ) {
+    ) {
         self.pathStorage = pathStorage
         self.pathStartIndex = pathStartIndex
     }
     
     /// Creates an empty collection of changes, i.e. the changes between two
     /// empty collections.
-    init() {
+    private init() {
         self.pathStorage = []
         self.pathStartIndex = 0
     }
@@ -303,10 +301,6 @@ extension CollectionChanges : RandomAccessCollection {
     
     func index(after i: Index) -> Index {
         return i + 1
-    }
-    
-    func index(before i: Index) -> Index {
-        return i - 1
     }
     
     subscript(position: Index) -> Element {
@@ -340,7 +334,7 @@ extension CollectionChanges {
     ///   removed elements.
     init<Source : BidirectionalCollection, Target : BidirectionalCollection>(
         from source: Source, to target: Target, by areEquivalent: (Source.Element, Target.Element) -> Bool
-        ) where
+    ) where
         Source.Element == Target.Element,
         Source.Index == SourceIndex,
         Target.Index == TargetIndex
@@ -358,9 +352,9 @@ extension CollectionChanges {
     ///   removed elements.
     mutating func formChanges<
         Source : BidirectionalCollection, Target : BidirectionalCollection
-        >(
+    >(
         from source: Source, to target: Target, by areEquivalent: (Source.Element, Target.Element) -> Bool
-        ) where
+    ) where
         Source.Element == Target.Element,
         Source.Index == SourceIndex,
         Target.Index == TargetIndex
@@ -392,16 +386,15 @@ extension CollectionChanges {
     /// - Runtime: O(*n* * *d*), where *n* is `a.count + b.count` and
     ///   *d* is the number of inserts and removes.
     /// - Space: O(*d* * *d*), where *d* is the number of inserts and removes.
-    @inline(__always)
     private mutating func formChangesCore<
         Source : BidirectionalCollection, Target : BidirectionalCollection
-        >(
+    >(
         from a: Source,
         to b: Target,
         x: Source.Index,
         y: Target.Index,
         by areEquivalent: (Source.Element, Target.Element) -> Bool
-        ) where
+    ) where
         Source.Element == Target.Element,
         Source.Index == SourceIndex,
         Target.Index == TargetIndex
@@ -508,9 +501,9 @@ extension SearchState {
     /// - Precondition: There is at least one difference between `a` and `b`
     mutating func removeCollectionChanges<
         Source : BidirectionalCollection, Target : BidirectionalCollection
-        >(
+    >(
         a: Source, b: Target, d: Int, delta: Int
-        ) -> CollectionChanges<Source.Index, Target.Index>
+    ) -> CollectionChanges<Source.Index, Target.Index>
         where Source.Index == SourceIndex, Target.Index == TargetIndex
     {
         // Calculating the difference path is very similar to running the core
@@ -628,8 +621,7 @@ struct CountingIndex<Base : Comparable> : Equatable {
 
 extension CountingIndex : Comparable {
     static func <(lhs: CountingIndex, rhs: CountingIndex) -> Bool {
-        return (lhs.base, lhs.offset ?? Int.max)
-            < (rhs.base, rhs.offset ?? Int.max)
+        return (lhs.base, lhs.offset ?? Int.max) < (rhs.base, rhs.offset ?? Int.max)
     }
 }
 
@@ -705,7 +697,7 @@ fileprivate func triangularNumber(_ n: Int) -> Int {
 ///     ])
 ///
 /// [lower triangular matrix]: http://en.wikipedia.org/wiki/Triangular_matrix
-struct LowerTriangularMatrix<Element> {
+fileprivate struct LowerTriangularMatrix<Element> {
     /// The matrix elements stored in [row major order][rmo].
     ///
     /// [rmo]: http://en.wikipedia.org/wiki/Row-_and_column-major_order
